@@ -1,0 +1,89 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}Bracket — Mario Kart{% endblock %}
+
+{% block content %}
+<header>
+  <h1>🏁 {% if tournament.name %}{{ tournament.name }}{% else %}Mario Kart Tournament{% endif %}</h1>
+  {% if is_admin %}
+    <span class="badge">Admin</span>
+  {% else %}
+    <span class="badge badge-viewer">Viewer</span>
+  {% endif %}
+</header>
+
+<nav class="tabs">
+  {% if is_admin %}
+    <a href="{% url 'tournament:admin_dashboard' admin_token=tournament.admin_token %}" class="tab">Group Stage</a>
+  {% else %}
+    <span class="tab">Group Stage</span>
+  {% endif %}
+  <span class="tab active">Bracket</span>
+</nav>
+
+<div style="display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start;">
+
+  <div>
+    <h2 style="font-size:1rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;">
+      Bracket
+    </h2>
+
+    <div class="bracket">
+      {% for round in bracket %}
+        <div class="bracket-round">
+          <div class="bracket-round-label">
+            {% if forloop.last %}Final{% elif forloop.revcounter == 2 %}Semi-final{% else %}Round {{ round.round_number }}{% endif %}
+          </div>
+          {% for game_data in round.games %}
+            <div class="bracket-game {{ game_data.game.status }}">
+              <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">
+                Switch {{ game_data.game.switch_number }}
+                {% if game_data.game.cup %} · {{ game_data.game.cup }}{% endif %}
+              </div>
+              {% for participant in game_data.participants %}
+                <div class="bracket-player {% if participant.advanced %}advanced{% elif not participant.player %}tbd{% endif %}">
+                  <span>{% if participant.player %}{{ participant.player.name }}{% else %}TBD{% endif %}</span>
+                  {% if participant.points_earned is not None %}
+                    <span style="font-weight:700;color:var(--mk-yellow);">{{ participant.points_earned }}</span>
+                  {% endif %}
+                </div>
+              {% endfor %}
+
+              {% if is_admin and game_data.game.status != 'complete' %}
+                <div class="game-actions" style="margin-top:0.5rem;">
+                  <a href="{% url 'tournament:bracket_results' admin_token=tournament.admin_token game_id=game_data.game.id %}"
+                     class="btn btn-primary btn-sm">Enter results</a>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% empty %}
+        <p class="text-muted">Bracket not yet generated.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Standings sidebar -->
+  <div>
+    <div class="card">
+      <h2>Group Stage Standings</h2>
+      <table class="standings-table">
+        <thead>
+          <tr><th>#</th><th>Player</th><th class="pts-col">Pts</th></tr>
+        </thead>
+        <tbody>
+          {% for player in standings %}
+            <tr>
+              <td class="rank">{{ forloop.counter }}</td>
+              <td>{{ player.name }}</td>
+              <td class="pts-col">{{ player.total_points }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

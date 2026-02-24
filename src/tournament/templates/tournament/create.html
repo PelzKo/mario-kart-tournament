@@ -1,0 +1,97 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}Create Tournament — Mario Kart{% endblock %}
+
+{% block content %}
+<header>
+  <h1>🏁 Mario Kart Tournament</h1>
+</header>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+  <h2>Create New Tournament</h2>
+
+  <form method="post" id="create-form">
+    {% csrf_token %}
+
+    <!-- Hidden field holding comma-separated player names -->
+    <input type="hidden" name="player_names" id="player_names_input">
+
+    <div class="form-group">
+      <label for="id_name">Tournament name <span class="text-muted text-sm">(optional)</span></label>
+      <input type="text" name="name" id="id_name" placeholder="e.g. Mario Kart Night #3" maxlength="200"
+             value="{{ form.name.value|default:'' }}">
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="form-group">
+        <label for="id_switch_count">Nintendo Switches</label>
+        <input type="number" name="switch_count" id="id_switch_count" min="1" max="20"
+               value="{{ form.switch_count.value|default:'2' }}">
+      </div>
+      <div class="form-group">
+        <label for="id_games_per_player">Games per player</label>
+        <input type="number" name="games_per_player" id="id_games_per_player" min="1" max="20"
+               value="{{ form.games_per_player.value|default:'2' }}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Players</label>
+      <div id="player-list" style="display: flex; flex-direction: column; gap: 0.4rem;">
+        <!-- Rows injected by JS -->
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm mt-2" onclick="addPlayer()">+ Add player</button>
+    </div>
+
+    {% if form.errors %}
+      <div class="alert alert-info">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="mt-4">
+      <button type="submit" class="btn btn-primary" onclick="return prepareSubmit()">Create Tournament</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const playerList = document.getElementById('player-list');
+
+  function addPlayer(value='') {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:0.4rem;align-items:center';
+    row.innerHTML = `
+      <input type="text" class="player-name-input" placeholder="Player name" value="${value}"
+             style="flex:1;padding:0.45rem 0.75rem;background:var(--bg);border:1px solid var(--border);
+                    border-radius:var(--radius);color:var(--text);font-size:0.95rem;">
+      <button type="button" onclick="removePlayer(this)"
+              style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0 4px;">✕</button>
+    `;
+    playerList.appendChild(row);
+    row.querySelector('input').focus();
+  }
+
+  function removePlayer(btn) {
+    btn.parentElement.remove();
+  }
+
+  function prepareSubmit() {
+    const inputs = document.querySelectorAll('.player-name-input');
+    const names = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+    document.getElementById('player_names_input').value = names.join(',');
+    if (names.length < 2) {
+      alert('Please enter at least 2 player names.');
+      return false;
+    }
+    return true;
+  }
+
+  // Start with 4 default player slots
+  ['', '', '', ''].forEach(() => addPlayer());
+</script>
+{% endblock %}

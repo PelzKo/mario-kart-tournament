@@ -1,0 +1,156 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}
+  {% if tournament.name %}{{ tournament.name }} — {% endif %}Mario Kart Tournament
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .round-row {
+    --switch-count: {{ tournament.switch_count }};
+    grid-template-columns: 60px repeat({{ tournament.switch_count }}, 1fr);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+  <h1>🏁 {% if tournament.name %}{{ tournament.name }}{% else %}Mario Kart Tournament{% endif %}</h1>
+  {% if is_admin %}
+    <span class="badge">Admin</span>
+  {% else %}
+    <span class="badge badge-viewer">Viewer</span>
+  {% endif %}
+</header>
+
+<!-- Tabs -->
+<nav class="tabs">
+  <a href="#group" class="tab active" onclick="showTab('group', this)">Group Stage</a>
+  {% if tournament.stage == 'bracket' or tournament.stage == 'complete' %}
+    {% if is_admin %}
+      <a href="{% url 'tournament:bracket_view' admin_token=tournament.admin_token %}" class="tab">Bracket</a>
+    {% else %}
+      <span class="tab">Bracket</span>
+    {% endif %}
+  {% endif %}
+</nav>
+
+<div id="tab-group">
+  <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start;">
+
+    <!-- Group stage grid -->
+    <div>
+      <h2 style="font-size:1rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;">
+        Group Stage Schedule
+      </h2>
+
+      <!-- Column headers -->
+      <div class="round-row" style="margin-bottom: 0.25rem;">
+        <div></div>
+        {% for sw in switch_headers %}
+          <div style="text-align:center;font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;padding-bottom:.25rem;">
+            Switch {{ sw }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="stage-grid">
+        {% for row in grid %}
+          <div class="round-row">
+            <div class="round-label">R{{ row.round_number }}</div>
+
+            {% for cell in row.games %}
+              {% if cell %}
+                <div class="game-cell {{ cell.game.status }}">
+                  <div class="game-cell-header">
+                    <span class="switch-label">Sw {{ cell.game.switch_number }}</span>
+                    <div style="display:flex;align-items:center;gap:.4rem;">
+                      {% if cell.game.cup %}
+                        <span class="cup-tag">{{ cell.game.cup }}</span>
+                      {% endif %}
+                      <span class="status-dot {{ cell.game.status }}"></span>
+                    </div>
+                  </div>
+
+                  <ul class="player-list">
+                    {% for participant in cell.participants %}
+                      <li>
+                        {{ participant.player.name }}
+                        {% if participant.points_earned is not None %}
+                          <span class="pts">{{ participant.points_earned }}pt</span>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+
+                  {% if is_admin %}
+                    <div class="game-actions">
+                      {% if cell.game.status != 'complete' %}
+                        <a href="{% url 'tournament:vote_cup' admin_token=tournament.admin_token game_id=cell.game.id %}"
+                           class="btn btn-secondary btn-sm">Vote cup</a>
+                        <a href="{% url 'tournament:group_results' admin_token=tournament.admin_token game_id=cell.game.id %}"
+                           class="btn btn-primary btn-sm">Results</a>
+                      {% else %}
+                        <a href="{% url 'tournament:group_results' admin_token=tournament.admin_token game_id=cell.game.id %}"
+                           class="btn btn-secondary btn-sm">Edit</a>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% else %}
+                <div class="game-cell empty"></div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% empty %}
+          <p class="text-muted">No games scheduled.</p>
+        {% endfor %}
+      </div>
+
+      {% if is_admin and all_group_complete and tournament.stage == 'group' %}
+        <div class="mt-4">
+          <form method="post" action="{% url 'tournament:generate_bracket' admin_token=tournament.admin_token %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">
+              Generate Bracket →
+            </button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Standings sidebar -->
+    <div>
+      <div class="card">
+        <h2>Standings</h2>
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th class="pts-col">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for player in standings %}
+              <tr>
+                <td class="rank">{{ forloop.counter }}</td>
+                <td>{{ player.name }}</td>
+                <td class="pts-col">{{ player.total_points }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3" class="text-muted">No results yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab, el) {
+    // Simple tab switcher (currently only one tab on this page)
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}Tournament Created — Mario Kart{% endblock %}
+
+{% block content %}
+<header>
+  <h1>🏁 Mario Kart Tournament</h1>
+</header>
+
+<div class="card" style="max-width: 640px; margin: 0 auto;">
+  <h2>Tournament Created!</h2>
+
+  {% if tournament.name %}
+    <p style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">{{ tournament.name }}</p>
+  {% endif %}
+
+  <div class="alert alert-success">
+    Your tournament has been created. Save both links below!
+  </div>
+
+  <div class="form-group">
+    <label>Organizer link <span class="badge">Admin</span></label>
+    <div class="url-box">
+      <span>{{ admin_url }}</span>
+    </div>
+    <div class="text-muted text-sm mt-1">Keep this private — it allows editing results.</div>
+  </div>
+
+  <div class="form-group">
+    <label>Viewer link <span class="badge badge-viewer">Read-only</span></label>
+    <div class="url-box">
+      <span>{{ viewer_url }}</span>
+    </div>
+    <div class="text-muted text-sm mt-1">Share with players — read-only view of the tournament.</div>
+  </div>
+
+  <div class="mt-4" style="display: flex; gap: 0.75rem;">
+    <a href="{{ tournament.get_admin_url }}" class="btn btn-primary">Go to organizer dashboard</a>
+    <a href="/" class="btn btn-secondary">Create another</a>
+  </div>
+</div>
+{% endblock %}

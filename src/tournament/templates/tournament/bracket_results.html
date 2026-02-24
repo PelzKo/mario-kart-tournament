@@ -1,0 +1,39 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}Bracket Results — Mario Kart{% endblock %}
+
+{% block content %}
+<header>
+  <h1>🏁 Bracket Game Results</h1>
+  <span class="badge">Round {{ game.round_number }} / Game {{ game.game_number }} / Switch {{ game.switch_number }}</span>
+</header>
+
+<div class="card" style="max-width: 480px; margin: 0 auto;">
+  <h2>Enter points per player</h2>
+  <p class="text-muted text-sm" style="margin-bottom: 1rem;">Top 2 players will advance to the next round.</p>
+
+  {% if game.cup %}
+    <p class="text-muted text-sm" style="margin-bottom: 1rem;">Cup: <strong>{{ game.cup }}</strong></p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <input type="number" name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+               min="0" max="999" value="{{ field.value|default:'' }}"
+               style="width: 100%; padding: 0.5rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 1rem;">
+        {% if field.errors %}
+          <div style="color: #fc8181; font-size: 0.8rem; margin-top: 0.25rem;">{{ field.errors.0 }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="mt-4" style="display: flex; gap: 0.75rem;">
+      <button type="submit" class="btn btn-primary">Save & advance top 2</button>
+      <a href="{% url 'tournament:bracket_view' admin_token=tournament.admin_token %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
