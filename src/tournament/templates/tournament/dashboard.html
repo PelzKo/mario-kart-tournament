@@ -30,13 +30,13 @@
     {% if is_admin %}
       <a href="{% url 'tournament:bracket_view' admin_token=tournament.admin_token %}" class="tab">Bracket</a>
     {% else %}
-      <span class="tab">Bracket</span>
+      <a href="{% url 'tournament:viewer' viewer_token=tournament.viewer_token %}" class="tab">Bracket</a>
     {% endif %}
   {% endif %}
 </nav>
 
 <div id="tab-group">
-  <div style="display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start;">
+  <div class="layout-sidebar">
 
     <!-- Group stage grid -->
     <div>
@@ -44,6 +44,7 @@
         Group Stage Schedule
       </h2>
 
+      <div class="grid-scroll">
       <!-- Column headers -->
       <div class="round-row" style="margin-bottom: 0.25rem;">
         <div></div>
@@ -106,6 +107,7 @@
           <p class="text-muted">No games scheduled.</p>
         {% endfor %}
       </div>
+      </div>{# end .grid-scroll #}
 
       {% if is_admin and all_group_complete and tournament.stage == 'group' %}
         <div class="mt-4">

@@ -36,7 +36,8 @@
 
   <div class="mt-4" style="display: flex; gap: 0.75rem;">
     <a href="{{ tournament.get_admin_url }}" class="btn btn-primary">Go to organizer dashboard</a>
-    <a href="/" class="btn btn-secondary">Create another</a>
+    <a href="{% url 'tournament:list' %}" class="btn btn-secondary">All tournaments</a>
+    <a href="{% url 'tournament:create' %}" class="btn btn-secondary">Create another</a>
   </div>
 </div>
 {% endblock %}

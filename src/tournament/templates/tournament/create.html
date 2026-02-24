@@ -22,7 +22,7 @@
              value="{{ form.name.value|default:'' }}">
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+    <div class="form-grid-2">
       <div class="form-group">
         <label for="id_switch_count">Nintendo Switches</label>
         <input type="number" name="switch_count" id="id_switch_count" min="1" max="20"
@@ -33,6 +33,19 @@
         <input type="number" name="games_per_player" id="id_games_per_player" min="1" max="20"
                value="{{ form.games_per_player.value|default:'2' }}">
       </div>
+    </div>
+
+    <div class="form-group">
+      <label for="id_password">Admin password</label>
+      <input type="password" name="password" id="id_password" required
+             placeholder="Set a password to protect the admin pages"
+             style="width: 100%; padding: 0.5rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 1rem;">
+      <div class="text-muted text-sm" style="margin-top: 0.25rem;">
+        Required to access the organizer view. The viewer link is always public.
+      </div>
+      {% if form.password.errors %}
+        <div style="color: #fc8181; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.password.errors.0 }}</div>
+      {% endif %}
     </div>
 
     <div class="form-group">

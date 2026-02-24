@@ -1,6 +1,6 @@
 {% extends "tournament/base.html" %}
 
-{% block title %}Enter Results — Mario Kart{% endblock %}
+{% block title %}{% if is_edit %}Correct Results{% else %}Enter Results{% endif %} — Mario Kart{% endblock %}
 
 {% block content %}
 <header>
@@ -9,7 +9,12 @@
 </header>
 
 <div class="card" style="max-width: 480px; margin: 0 auto;">
-  <h2>Enter points per player</h2>
+  <h2>{% if is_edit %}Correct results{% else %}Enter points per player{% endif %}</h2>
+  {% if is_edit %}
+    <div class="alert alert-info" style="margin-bottom: 1rem;">
+      Editing existing results — standings will update immediately.
+    </div>
+  {% endif %}
   {% if game.cup %}
     <p class="text-muted text-sm" style="margin-bottom: 1rem;">Cup: <strong>{{ game.cup }}</strong></p>
   {% endif %}
@@ -29,7 +34,11 @@
     {% endfor %}
 
     <div class="mt-4" style="display: flex; gap: 0.75rem;">
-      <button type="submit" class="btn btn-primary">Save results</button>
+      {% if is_edit %}
+        <button type="submit" class="btn btn-primary">Update results</button>
+      {% else %}
+        <button type="submit" class="btn btn-primary">Save results</button>
+      {% endif %}
       <a href="{% url 'tournament:admin_dashboard' admin_token=tournament.admin_token %}" class="btn btn-secondary">Cancel</a>
     </div>
   </form>

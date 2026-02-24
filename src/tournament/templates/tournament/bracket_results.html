@@ -4,16 +4,48 @@
 
 {% block content %}
 <header>
-  <h1>🏁 Bracket Game Results</h1>
-  <span class="badge">Round {{ game.round_number }} / Game {{ game.game_number }} / Switch {{ game.switch_number }}</span>
+  {% if is_tiebreaker %}
+    <h1>⚡ Tiebreaker Round</h1>
+    <span class="badge" style="background: #fc8181; color: #1a202c;">Tiebreaker</span>
+  {% elif is_final %}
+    <h1>🏆 Grand Final</h1>
+    <span class="badge">Round {{ game.round_number }} / Game {{ game.game_number }} / Switch {{ game.switch_number }}</span>
+  {% else %}
+    <h1>🏁 Bracket Game Results</h1>
+    <span class="badge">Round {{ game.round_number }} / Game {{ game.game_number }} / Switch {{ game.switch_number }}</span>
+  {% endif %}
 </header>
+
+{% if has_tbd %}
+<div style="background: #744210; border: 1px solid #ed8936; border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.9rem; color: #fbd38d;">
+  ⚠️ Some players are still TBD. Wait until all participants are known before entering results.
+</div>
+{% endif %}
 
 <div class="card" style="max-width: 480px; margin: 0 auto;">
   <h2>Enter points per player</h2>
-  <p class="text-muted text-sm" style="margin-bottom: 1rem;">Top 2 players will advance to the next round.</p>
 
-  {% if game.cup %}
-    <p class="text-muted text-sm" style="margin-bottom: 1rem;">Cup: <strong>{{ game.cup }}</strong></p>
+  {% if is_tiebreaker %}
+    <div style="background: rgba(252,129,129,0.1); border: 1px solid #fc8181; border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: 1rem;">
+      <p class="text-sm" style="color: #fc8181; font-weight: 700; margin-bottom: 0.25rem;">⚡ Tiebreaker!</p>
+      <p class="text-muted text-sm">
+        These players tied for 1st place in the final. Play one race to decide the winner.
+        {% if game.cup %}<br>Cup: <strong>{{ game.cup }}</strong>{% endif %}
+        {% if game.tiebreaker_race %} — Race: <strong>{{ game.tiebreaker_race }}</strong>{% endif %}
+      </p>
+    </div>
+  {% elif is_final %}
+    <p class="text-muted text-sm" style="margin-bottom: 1rem;">
+      🎉 This is the Final! Enter points to crown the champion — no one advances further.
+    </p>
+    {% if game.cup %}
+      <p class="text-muted text-sm" style="margin-bottom: 1rem;">Cup: <strong>{{ game.cup }}</strong></p>
+    {% endif %}
+  {% else %}
+    <p class="text-muted text-sm" style="margin-bottom: 1rem;">Top 2 players will advance to the next round.</p>
+    {% if game.cup %}
+      <p class="text-muted text-sm" style="margin-bottom: 1rem;">Cup: <strong>{{ game.cup }}</strong></p>
+    {% endif %}
   {% endif %}
 
   <form method="post">
@@ -31,7 +63,13 @@
     {% endfor %}
 
     <div class="mt-4" style="display: flex; gap: 0.75rem;">
-      <button type="submit" class="btn btn-primary">Save & advance top 2</button>
+      {% if is_tiebreaker %}
+        <button type="submit" class="btn btn-primary" style="background: #e53e3e;">⚡ Confirm tiebreaker results</button>
+      {% elif is_final %}
+        <button type="submit" class="btn btn-primary">🏆 Confirm final results</button>
+      {% else %}
+        <button type="submit" class="btn btn-primary">Save & advance top 2</button>
+      {% endif %}
       <a href="{% url 'tournament:bracket_view' admin_token=tournament.admin_token %}" class="btn btn-secondary">Cancel</a>
     </div>
   </form>

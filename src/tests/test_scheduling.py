@@ -19,10 +19,13 @@ constants_mod = types.ModuleType("tournament.constants")
 constants_mod.CUPS = [
     "Mushroom", "Flower", "Star", "Special", "Shell", "Banana", "Leaf", "Lightning",
 ]
-sys.modules["tournament"] = types.ModuleType("tournament")
+# Create a stub package for 'tournament' that still resolves submodules from disk
+_tournament_pkg = types.ModuleType("tournament")
+_tournament_pkg.__path__ = [os.path.join(os.path.dirname(os.path.dirname(__file__)), "tournament")]
+_tournament_pkg.__package__ = "tournament"
+sys.modules["tournament"] = _tournament_pkg
 sys.modules["tournament.constants"] = constants_mod
 
-import importlib
 import tournament.scheduling as scheduling_mod
 # Re-import after patching
 from tournament.scheduling import (

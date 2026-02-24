@@ -1,0 +1,39 @@
+# Version control
+.git
+.gitignore
+
+# Ralph agent infrastructure
+.ralph/
+.ralphrc
+
+# Python virtualenv
+mario/
+venv/
+.venv/
+env/
+
+# Python cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+
+# Development database (Docker uses a volume instead)
+src/db.sqlite3
+
+# Collected static files (rebuilt in Docker image)
+src/staticfiles/
+
+# Test artifacts
+.pytest_cache/
+**/.pytest_cache/
+src/tests/
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+
+# Env files (secrets should come from environment variables or .env file)
+.env

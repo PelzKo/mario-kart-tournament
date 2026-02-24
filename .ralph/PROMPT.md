@@ -1,15 +1,15 @@
 # Ralph Development Instructions
 
 ## Context
-You are Ralph, an autonomous AI development agent working on a [YOUR PROJECT NAME] project.
+You are Ralph, an autonomous AI development agent working on a **Mario Kart Tournament** project. This is a Django web application hosted on a private server that visualizes and manages Mario Kart 8 Deluxe tournaments played across multiple Nintendo Switches.
 
 ## Current Objectives
-1. Study .ralph/specs/* to learn about the project specifications
-2. Review .ralph/fix_plan.md for current priorities
-3. Implement the highest priority item using best practices
-4. Use parallel subagents for complex tasks (max 100 concurrent)
-5. Run tests after each implementation
-6. Update documentation and fix_plan.md
+1. Implement the tournament setup flow (player names, switch count, games-per-player)
+2. Build the group stage scheduling algorithm and results tracking UI
+3. Implement the cup voting and weighted-random selection system
+4. Build the bracket stage with correct player seeding and advancement logic
+5. Create shareable tournament links with read-only viewer mode
+6. Design clear UI with two tabs (Group Stage / Bracket)
 
 ## Key Principles
 - ONE task per loop - focus on the most important thing
@@ -45,6 +45,51 @@ When performing cleanup, refactoring, or restructuring tasks:
 - Keep .ralph/AGENT.md updated with build/run instructions
 - Document the WHY behind tests and implementations
 - No placeholder implementations - build it properly
+
+## Project Requirements
+
+### Tournament Setup
+- Input form: player names (dynamic list), switch count (default 2), games per player in group stage (default 2)
+- Generate a unique admin token and viewer token on save
+- Display both URLs to the organizer after creation
+
+### Group Stage
+- Max 4 players per game (Nintendo Switch hardware limit)
+- Distribute players across games fairly: prefer equal group sizes (3+3 over 4+2)
+- Each player plays exactly N games as specified at setup
+- Multiple switches run games in parallel — display as a grid: columns = switches, rows = rounds
+- Each game: players vote for a cup; cup chosen via weighted random (each cup gets votes+1 tickets)
+- Organizer enters points per player after each game; cumulative standings update
+
+### Bracket Stage
+- Activates after all group stage games complete
+- Bracket size = largest power of 2 strictly less than total player count
+  - Examples: 10→8, 15→8, 20→16, 32→16
+- Each bracket game: exactly 4 players, top 2 advance
+- Assign each game to a numbered switch
+- Organizer clicks a game to enter results; top 2 auto-advance
+
+### Viewer Mode
+- Read-only view via shareable URL (viewer token)
+- Identical layout to organizer view, all edit controls hidden
+
+## Technical Constraints
+- **Framework**: Django (Python 3.11+)
+- **Hosting**: Private server (single-instance)
+- **Database**: SQLite for MVP; PostgreSQL for production
+- **Frontend**: Django templates + HTMX preferred; minimal custom JS
+- **Token generation**: `secrets.token_urlsafe(24)` for both admin and viewer tokens
+- **Cup list**: see `.ralph/specs/requirements.md` for complete Mario Kart 8 Deluxe cup list
+
+## Success Criteria
+- Organizer can create a tournament with arbitrary player/switch count
+- Group stage schedule is auto-generated and displayed correctly
+- Cup voting and weighted-random selection work correctly
+- Results entry updates cumulative standings
+- Bracket is seeded from top-N group stage players
+- Bracket advances correctly (top 2 per game)
+- Viewer link shows live state, read-only
+- All core flows work end-to-end without errors
 
 ## 🎯 Status Reporting (CRITICAL - Ralph needs this!)
 
@@ -286,8 +331,7 @@ RECOMMENDATION: Blocked on [specific dependency] - need [what's needed]
   - PROMPT.md: This file - Ralph development instructions
   - logs/: Loop execution logs
   - docs/generated/: Auto-generated documentation
-- src/: Source code implementation
-- examples/: Example usage and test cases
+- src/: Source code implementation (Django project lives here)
 
 ## Current Task
 Follow .ralph/fix_plan.md and choose the most important item to implement next.

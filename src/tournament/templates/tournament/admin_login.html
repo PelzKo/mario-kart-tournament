@@ -1,0 +1,44 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}Admin Login — Mario Kart{% endblock %}
+
+{% block content %}
+<header>
+  <h1>🔒 Admin Login</h1>
+  {% if tournament.name %}
+    <span class="badge">{{ tournament.name }}</span>
+  {% endif %}
+</header>
+
+<div class="card" style="max-width: 400px; margin: 0 auto;">
+  <h2>Enter admin password</h2>
+  <p class="text-muted text-sm" style="margin-bottom: 1.5rem;">
+    The organizer password is required to access the admin area. The viewer link is always public.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <input type="password" name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+               placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+               style="width: 100%; padding: 0.5rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 1rem;">
+        {% if field.errors %}
+          <div style="color: #fc8181; font-size: 0.8rem; margin-top: 0.25rem;">{{ field.errors.0 }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="mt-4">
+      <button type="submit" class="btn btn-primary">🔓 Login</button>
+    </div>
+  </form>
+
+  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+    <a href="{% url 'tournament:viewer' viewer_token=tournament.viewer_token %}" class="text-muted text-sm">
+      → View as spectator (no password needed)
+    </a>
+  </div>
+</div>
+{% endblock %}

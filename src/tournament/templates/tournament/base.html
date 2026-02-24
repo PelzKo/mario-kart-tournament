@@ -249,7 +249,7 @@
     .bracket-round {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 0;
       min-width: 200px;
     }
 
@@ -280,6 +280,59 @@
 
     .bracket-player.advanced { font-weight: 700; color: #68d391; }
     .bracket-player.tbd { color: var(--text-muted); font-style: italic; }
+
+    /* ------------------------------------------------------------------ */
+    /* Bracket visual connectors                                           */
+    /* ------------------------------------------------------------------ */
+    .bracket-pair {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .bracket-pair:last-child { margin-bottom: 0; }
+
+    /* Vertical connector line on right side (only for 2-game pairs) */
+    .bracket-pair.has-connector::before {
+      content: '';
+      position: absolute;
+      right: -1.25rem;
+      top: 26%;
+      height: 48%;
+      width: 2px;
+      background: var(--border);
+      pointer-events: none;
+    }
+
+    /* Horizontal line stub from each game to the vertical bar */
+    .bracket-pair.has-connector .bracket-game {
+      position: relative;
+    }
+
+    .bracket-pair.has-connector .bracket-game::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -1.25rem;
+      width: 1.25rem;
+      height: 2px;
+      background: var(--border);
+      pointer-events: none;
+    }
+
+    /* Inbound line on the left side for non-first-round games */
+    .bracket-game.has-inbound::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -1.25rem;
+      width: 1.25rem;
+      height: 2px;
+      background: var(--border);
+      pointer-events: none;
+    }
 
     /* ------------------------------------------------------------------ */
     /* Utility                                                              */
@@ -317,12 +370,71 @@
       font-size: 0.85rem;
       word-break: break-all;
     }
+
+    /* ------------------------------------------------------------------ */
+    /* Responsive layout helpers                                            */
+    /* ------------------------------------------------------------------ */
+
+    /* Two-column grid (main content + sidebar) */
+    .layout-sidebar {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    /* Two-column form row (e.g., switch count + games per player) */
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    /* Scrollable wrapper for the group stage grid on small screens */
+    .grid-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 720px) {
+      body { padding: 0.75rem; }
+
+      header h1 { font-size: 1.2rem; }
+
+      /* Stack sidebar below main content on mobile */
+      .layout-sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      /* Stack 2-col form row on mobile */
+      .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      /* Tighter cards */
+      .card { padding: 1rem; }
+
+      /* Smaller bracket games */
+      .bracket-round { min-width: 160px; }
+
+      /* Tab text smaller */
+      .tab { padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+
+      /* Buttons: allow wrapping */
+      .game-actions { flex-wrap: wrap; }
+    }
   </style>
+  {% if auto_refresh %}
+  <meta http-equiv="refresh" content="30">
+  {% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
 <div class="container">
   {% block content %}{% endblock %}
+  <footer style="margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+    <a href="{% url 'tournament:list' %}" style="color: var(--text-muted);">← All tournaments</a>
+  </footer>
 </div>
 </body>
 </html>

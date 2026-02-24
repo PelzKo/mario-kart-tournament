@@ -16,12 +16,79 @@
   {% if is_admin %}
     <a href="{% url 'tournament:admin_dashboard' admin_token=tournament.admin_token %}" class="tab">Group Stage</a>
   {% else %}
-    <span class="tab">Group Stage</span>
+    <a href="{% url 'tournament:viewer' viewer_token=tournament.viewer_token %}" class="tab">Group Stage</a>
   {% endif %}
   <span class="tab active">Bracket</span>
+  {% if tournament.stage == 'complete' %}
+    {% if is_admin %}
+      <a href="{% url 'tournament:stats_admin' admin_token=tournament.admin_token %}" class="tab">📊 Statistics</a>
+    {% else %}
+      <a href="{% url 'tournament:stats_viewer' viewer_token=tournament.viewer_token %}" class="tab">📊 Statistics</a>
+    {% endif %}
+  {% endif %}
 </nav>
 
-<div style="display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start;">
+{% if podium %}
+<div style="background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%); border: 2px solid var(--mk-yellow); border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; text-align: center;">
+  <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--mk-yellow); margin-bottom: 1.5rem; letter-spacing: 0.05em;">
+    🏆 Tournament Complete!
+  </h2>
+
+  <div style="display: flex; justify-content: center; align-items: flex-end; gap: 1rem; margin-bottom: 1rem;">
+
+    <!-- 2nd place -->
+    {% if podium.second %}
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+      {% for p in podium.second %}
+        <div style="font-weight: 700; color: var(--text);">{{ p.player.name }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ p.points_earned }} pts</div>
+      {% endfor %}
+      <div style="background: #a0aec0; color: #1a202c; font-weight: 800; font-size: 1.1rem;
+                  width: 80px; height: 60px; display: flex; align-items: center; justify-content: center;
+                  border-radius: 4px 4px 0 0;">
+        🥈 2nd
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 1st place (tallest) -->
+    {% if podium.first %}
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+      <div style="font-size: 1.5rem;">👑</div>
+      {% for p in podium.first %}
+        <div style="font-weight: 800; font-size: 1.1rem; color: var(--mk-yellow);">{{ p.player.name }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ p.points_earned }} pts</div>
+      {% endfor %}
+      <div style="background: var(--mk-yellow); color: #1a202c; font-weight: 800; font-size: 1.3rem;
+                  width: 90px; height: 80px; display: flex; align-items: center; justify-content: center;
+                  border-radius: 4px 4px 0 0;">
+        🥇 1st
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 3rd place -->
+    {% if podium.third %}
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+      {% for p in podium.third %}
+        <div style="font-weight: 700; color: var(--text);">{{ p.player.name }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ p.points_earned }} pts</div>
+      {% endfor %}
+      <div style="background: #c05621; color: #fff; font-weight: 800; font-size: 1rem;
+                  width: 80px; height: 45px; display: flex; align-items: center; justify-content: center;
+                  border-radius: 4px 4px 0 0;">
+        🥉 3rd
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+  <!-- Podium base -->
+  <div style="border-top: 3px solid var(--mk-yellow); width: 100%; max-width: 320px; margin: 0 auto;"></div>
+</div>
+{% endif %}
+
+<div class="layout-sidebar">
 
   <div>
     <h2 style="font-size:1rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;">
@@ -32,31 +99,54 @@
       {% for round in bracket %}
         <div class="bracket-round">
           <div class="bracket-round-label">
-            {% if forloop.last %}Final{% elif forloop.revcounter == 2 %}Semi-final{% else %}Round {{ round.round_number }}{% endif %}
+            {% if round.is_tiebreaker_round %}
+              Tiebreaker
+            {% elif forloop.last %}Final{% elif forloop.revcounter == 2 %}Semi-final{% else %}Round {{ round.round_number }}{% endif %}
           </div>
-          {% for game_data in round.games %}
-            <div class="bracket-game {{ game_data.game.status }}">
-              <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">
-                Switch {{ game_data.game.switch_number }}
-                {% if game_data.game.cup %} · {{ game_data.game.cup }}{% endif %}
-              </div>
-              {% for participant in game_data.participants %}
-                <div class="bracket-player {% if participant.advanced %}advanced{% elif not participant.player %}tbd{% endif %}">
-                  <span>{% if participant.player %}{{ participant.player.name }}{% else %}TBD{% endif %}</span>
-                  {% if participant.points_earned is not None %}
-                    <span style="font-weight:700;color:var(--mk-yellow);">{{ participant.points_earned }}</span>
+
+          {% comment %}Render games grouped in pairs with connector lines{% endcomment %}
+          {% for pair in round.pairs %}
+            <div class="bracket-pair {% if pair|length > 1 and not round.is_tiebreaker_round %}has-connector{% endif %}">
+              {% for game_data in pair %}
+                <div class="bracket-game {{ game_data.game.status }}
+                  {% if game_data.game.is_tiebreaker %} tiebreaker-game{% endif %}
+                  {% if not forloop.parentloop.first or not forloop.parentloop.parentloop.first %}has-inbound{% endif %}">
+                  {% if game_data.game.is_tiebreaker %}
+                    <div style="font-size:0.7rem;font-weight:700;color:#fc8181;margin-bottom:0.3rem;">
+                      ⚡ TIEBREAKER
+                    </div>
+                  {% endif %}
+                  <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.3rem;">
+                    Switch {{ game_data.game.switch_number }}
+                    {% if game_data.game.cup %} · {{ game_data.game.cup }}{% endif %}
+                    {% if game_data.game.tiebreaker_race %} · <em>{{ game_data.game.tiebreaker_race }}</em>{% endif %}
+                  </div>
+                  {% for participant in game_data.participants %}
+                    <div class="bracket-player {% if participant.advanced %}advanced{% elif not participant.player %}tbd{% endif %}">
+                      <span>{% if participant.player %}{{ participant.player.name }}{% else %}TBD{% endif %}</span>
+                      {% if participant.points_earned is not None %}
+                        <span style="font-weight:700;color:var(--mk-yellow);">{{ participant.points_earned }}</span>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+
+                  {% if game_data.tie_note %}
+                    <div style="margin-top: 0.3rem;">
+                      <em style="font-size: 0.72rem; color: var(--text-muted);">{{ game_data.tie_note }}</em>
+                    </div>
+                  {% endif %}
+
+                  {% if is_admin and game_data.game.status != 'complete' %}
+                    <div class="game-actions" style="margin-top:0.5rem;">
+                      <a href="{% url 'tournament:bracket_results' admin_token=tournament.admin_token game_id=game_data.game.id %}"
+                         class="btn btn-primary btn-sm">Enter results</a>
+                    </div>
                   {% endif %}
                 </div>
               {% endfor %}
-
-              {% if is_admin and game_data.game.status != 'complete' %}
-                <div class="game-actions" style="margin-top:0.5rem;">
-                  <a href="{% url 'tournament:bracket_results' admin_token=tournament.admin_token game_id=game_data.game.id %}"
-                     class="btn btn-primary btn-sm">Enter results</a>
-                </div>
-              {% endif %}
             </div>
           {% endfor %}
+
         </div>
       {% empty %}
         <p class="text-muted">Bracket not yet generated.</p>

@@ -6,6 +6,8 @@
 - [x] **Tournament creation view** — form for player names, switch count, games-per-player; generate admin token + viewer token on save; display both URLs
 - [x] **Group stage scheduler** — algorithm to distribute players across rounds/switches fairly (equal group sizes, each player plays N games, max 4 per game)
 - [x] **Group stage grid UI** — display grid (rows = rounds, columns = switches) with player names, status, and cup per cell
+- [x] **Cups and races** - Added `CUP_TRACKS` dict (24 cups × 4 tracks = 96 total) and `ALL_TRACKS` flat list to constants.py
+- [x] **Docker** - Added Dockerfile (gunicorn + whitenoise), docker-compose.yml (volume for SQLite), .dockerignore; settings updated for DATA_DIR
 
 ## Medium Priority
 - [x] **Cup voting system** — per-game vote form; weighted-random cup selection (votes + 1 per cup); save selected cup to GroupGame
@@ -14,13 +16,23 @@
 - [x] **Bracket generation** — after group stage complete, seed top-N players (N = largest power of 2 strictly < total) into bracket; assign switches
 - [x] **Bracket tree UI** — visual bracket display; show 4 players per node, switch number, cup, status
 - [x] **Bracket results entry** — click a bracket game → enter points; top 2 auto-advance; repeat until final
+- [x] **Tie breaker** - if there is a tie at the end of a game in the bracket, choose the person that had the most points in the group stage and write a small text in cursive under the names explaining this (but only in the event of a tie)
+- [x] **Finale** - If only one game remains, change text in point input form (no more people advance), and afterward show some kind of podium with the top three
+- [x] **Improvements** - IMPROVEMENT_IDEAS.md written with 12 concrete suggestions (password, stats, bracket lines, QR code, chat, print view, player profiles, cup blacklist, HTMX, rematch, undo, i18n)
+- [x] **Tie breaker finale** - After finale, if top scorers are tied, a tiebreaker BracketGame is auto-created (random cup+race from ALL_TRACKS, no voting). Podium shows tied players alphabetically per position.
 
 ## Low Priority
 - [x] **Viewer mode** — read-only tournament view via shareable URL; no forms or action buttons rendered
-- [ ] **Auto-refresh / HTMX polling** — viewer page refreshes automatically to show live standings
-- [ ] **Responsive styling** — CSS for usable display on phones/tablets at the venue
-- [ ] **Result correction** — allow organizer to edit mistaken results
-- [ ] **Tournament list page** — landing page listing recent tournaments with admin/viewer links
+- [x] **Fix viewer mode buttons** - fix "Group Stage" and "Bracket" buttons in viewer mode so they show the right things
+- [x] **Auto-refresh / HTMX polling** — viewer page refreshes automatically (meta refresh every 30s; stops when tournament is complete)
+- [x] **Responsive styling** — media query @720px: sidebar stacks, form grids collapse, grid gets horizontal scroll, tabs/buttons shrink
+- [x] **Result correction** — group stage: "Edit" button pre-populates form with existing scores; bracket correction skipped (cascade complexity)
+- [x] **Tournament list page** — landing page listing recent tournaments with admin/viewer links; "/" shows list, "/new/" creates
+- [x] **Password protection** - password_hash on Tournament; admin_login view + session auth; all admin views protected; creator auto-authenticated on creation
+- [x] **Statistics** - Third tab (after completion): cup usage frequency, player pairings, best single score, avg pts/game. Accessible via admin + viewer token.
+- [x] **Visual Brackets** - CSS bracket-pair connectors with horizontal stubs + vertical bar connecting game pairs to next round
+- [x] **Add points stop** - Warning banner shown in bracket_results when any participant is still TBD; form still submittable but clearly flagged
+- [ ] **no submit without points** - When warning banner is shown in bracket results that any participant is still TBD, make form not submittable
 
 ## Completed
 - [x] Project initialization

@@ -29,6 +29,8 @@ class Tournament(models.Model):
     games_per_player = models.PositiveIntegerField(default=2)
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default=STAGE_SETUP)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Hashed password for protecting admin pages (blank = no password set)
+    password_hash = models.CharField(max_length=128, blank=True)
 
     def __str__(self):
         return self.name or f"Tournament {self.id}"
@@ -148,6 +150,8 @@ class BracketGame(models.Model):
         blank=True,
         related_name="previous_games",
     )
+    is_tiebreaker = models.BooleanField(default=False)
+    tiebreaker_race = models.CharField(max_length=100, blank=True)  # specific track for tiebreaker
 
     class Meta:
         ordering = ["round_number", "game_number"]

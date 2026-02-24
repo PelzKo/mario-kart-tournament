@@ -29,6 +29,13 @@ class TournamentCreateForm(forms.Form):
         required=True,
         help_text="Comma-separated player names (filled by JS)",
     )
+    password = forms.CharField(
+        max_length=100,
+        required=True,
+        label="Admin password",
+        widget=forms.PasswordInput(attrs={"placeholder": "Set a password to protect the admin pages"}),
+        help_text="Required to access the organizer view. The viewer link is always public.",
+    )
 
     def clean_player_names(self):
         raw = self.cleaned_data.get("player_names", "")
@@ -45,6 +52,15 @@ class TournamentCreateForm(forms.Form):
                 raise ValidationError(f"Duplicate player name: {name}")
             seen.add(lower)
         return names
+
+
+class AdminLoginForm(forms.Form):
+    password = forms.CharField(
+        max_length=100,
+        required=True,
+        label="Admin password",
+        widget=forms.PasswordInput(attrs={"placeholder": "Enter admin password"}),
+    )
 
 
 class CupVoteForm(forms.Form):

@@ -1,0 +1,131 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}Statistics — Mario Kart{% endblock %}
+
+{% block content %}
+<header>
+  <h1>📊 {% if tournament.name %}{{ tournament.name }}{% else %}Mario Kart Tournament{% endif %}</h1>
+  {% if is_admin %}
+    <span class="badge">Admin</span>
+  {% else %}
+    <span class="badge badge-viewer">Viewer</span>
+  {% endif %}
+</header>
+
+<nav class="tabs">
+  {% if is_admin %}
+    <a href="{% url 'tournament:admin_dashboard' admin_token=tournament.admin_token %}" class="tab">Group Stage</a>
+    <a href="{% url 'tournament:bracket_view' admin_token=tournament.admin_token %}" class="tab">Bracket</a>
+  {% else %}
+    <a href="{% url 'tournament:viewer' viewer_token=tournament.viewer_token %}" class="tab">Group Stage</a>
+    <a href="{% url 'tournament:viewer' viewer_token=tournament.viewer_token %}" class="tab">Bracket</a>
+  {% endif %}
+  <span class="tab active">Statistics</span>
+</nav>
+
+<div class="layout-sidebar">
+
+  <div>
+
+    <!-- Cup frequency -->
+    <div class="card">
+      <h2>🏆 Cup Usage</h2>
+      {% if stats.cup_ranking %}
+        <table class="standings-table">
+          <thead>
+            <tr><th>#</th><th>Cup</th><th class="pts-col">Times played</th></tr>
+          </thead>
+          <tbody>
+            {% for cup, count in stats.cup_ranking %}
+              <tr>
+                <td class="rank">{{ forloop.counter }}</td>
+                <td>{{ cup }}</td>
+                <td class="pts-col">{{ count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted text-sm">No completed games yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- Player pairings -->
+    <div class="card">
+      <h2>🤝 Most Frequent Pairings</h2>
+      <p class="text-muted text-sm" style="margin-bottom: 0.75rem;">Players who raced together most often.</p>
+      {% if stats.pair_ranking %}
+        <table class="standings-table">
+          <thead>
+            <tr><th>#</th><th>Players</th><th class="pts-col">Races together</th></tr>
+          </thead>
+          <tbody>
+            {% for pair in stats.pair_ranking %}
+              <tr>
+                <td class="rank">{{ forloop.counter }}</td>
+                <td>{{ pair.players.0 }} &amp; {{ pair.players.1 }}</td>
+                <td class="pts-col">{{ pair.count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted text-sm">No data available.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+
+    {% if stats.best_score %}
+    <div class="card">
+      <h2>⚡ Best Single Game</h2>
+      <div style="text-align: center; padding: 0.5rem 0;">
+        <div style="font-size: 2rem; font-weight: 800; color: var(--mk-yellow);">{{ stats.best_score.points }}</div>
+        <div style="font-weight: 700; margin-top: 0.25rem;">{{ stats.best_score.player }}</div>
+        <div class="text-muted text-sm" style="margin-top: 0.25rem;">{{ stats.best_score.game }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>📈 Group Stage Avg Points</h2>
+      <table class="standings-table">
+        <thead>
+          <tr><th>Player</th><th class="pts-col">Avg/race</th></tr>
+        </thead>
+        <tbody>
+          {% for row in stats.races_per_player %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td class="pts-col">{{ row.avg_pts }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Group Stage Standings</h2>
+      <table class="standings-table">
+        <thead>
+          <tr><th>#</th><th>Player</th><th class="pts-col">Pts</th></tr>
+        </thead>
+        <tbody>
+          {% for player in standings %}
+            <tr>
+              <td class="rank">{{ forloop.counter }}</td>
+              <td>{{ player.name }}</td>
+              <td class="pts-col">{{ player.total_points }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
