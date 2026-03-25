@@ -203,16 +203,18 @@ def test_bracket_size_5():
 
 
 def test_bracket_size_4():
-    """4 players → largest power of 2 strictly less = 2."""
-    assert bracket_size(4) == 2
+    """4 players → all go into a single finale, so bracket_size returns 4."""
+    assert bracket_size(4) == 4
 
 
 def test_bracket_size_3():
-    assert bracket_size(3) == 2
+    """3 players → all go into a single finale, so bracket_size returns 3."""
+    assert bracket_size(3) == 3
 
 
 def test_bracket_size_2():
-    assert bracket_size(2) == 1
+    """2 players → all go into a single finale, so bracket_size returns 2."""
+    assert bracket_size(2) == 2
 
 
 def test_bracket_size_1_raises():
@@ -245,6 +247,30 @@ def test_seed_bracket_16_players():
     assert all(len(g) == 4 for g in games)
     all_players = [p for g in games for p in g]
     assert sorted(all_players) == list(range(16))
+
+
+def test_seed_bracket_4_players():
+    """4 players → single finale game with all 4 players."""
+    players = list(range(4))
+    games = seed_bracket(players, 4)
+    assert len(games) == 1
+    assert sorted(games[0]) == list(range(4))
+
+
+def test_seed_bracket_3_players():
+    """3 players → single finale game with all 3 players."""
+    players = list(range(3))
+    games = seed_bracket(players, 3)
+    assert len(games) == 1
+    assert sorted(games[0]) == list(range(3))
+
+
+def test_seed_bracket_2_players():
+    """2 players → single finale game with both players."""
+    players = list(range(2))
+    games = seed_bracket(players, 2)
+    assert len(games) == 1
+    assert sorted(games[0]) == list(range(2))
 
 
 if __name__ == "__main__":
