@@ -467,8 +467,13 @@ def generate_bracket(request, admin_token):
     except ValueError:
         return redirect("tournament:admin_dashboard", admin_token=admin_token)
 
-    seeded_games = seed_bracket(standings, bsize)
-    num_rounds = int(math.log2(bsize // 4)) + 1 if bsize >= 4 else 1
+    if total <= 4:
+        # With 4 or fewer players, create a single finale game containing all players.
+        seeded_games = [list(standings)]
+        num_rounds = 1
+    else:
+        seeded_games = seed_bracket(standings, bsize)
+        num_rounds = int(math.log2(bsize // 4)) + 1 if bsize >= 4 else 1
 
     with transaction.atomic():
         tournament.stage = STAGE_BRACKET

@@ -202,6 +202,26 @@ def test_bracket_size_5():
     assert bracket_size(5) == 4
 
 
+def test_bracket_size_4():
+    """4 players → largest power of 2 strictly less = 2."""
+    assert bracket_size(4) == 2
+
+
+def test_bracket_size_3():
+    assert bracket_size(3) == 2
+
+
+def test_bracket_size_2():
+    assert bracket_size(2) == 1
+
+
+def test_bracket_size_1_raises():
+    """1 player is not enough for a bracket."""
+    import pytest
+    with pytest.raises(ValueError):
+        bracket_size(1)
+
+
 # ---------------------------------------------------------------------------
 # seed_bracket
 # ---------------------------------------------------------------------------
