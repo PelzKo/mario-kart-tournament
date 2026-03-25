@@ -181,12 +181,20 @@ def select_cup(votes: dict, excluded_cups=None) -> str:
 
 def bracket_size(total_players: int) -> int:
     """
-    Largest power of 2 strictly less than total_players.
+    Bracket size for a given number of players.
 
-    Examples: 10→8, 15→8, 20→16, 32→16, 16→8
+    For 4 or fewer players all players go directly into a single finale, so
+    the bracket size equals total_players.
+
+    For more than 4 players the bracket size is the largest power of 2
+    strictly less than total_players.
+
+    Examples: 10→8, 15→8, 20→16, 32→16, 16→8, 5→4, 4→4, 3→3, 2→2
     """
     if total_players < 2:
         raise ValueError("Need at least 2 players for a bracket")
+    if total_players <= 4:
+        return total_players
     exp = math.floor(math.log2(total_players))
     size = 2 ** exp
     if size == total_players:
@@ -199,12 +207,18 @@ def seed_bracket(players_by_seed: list, bracket_sz: int) -> List[List]:
     Given players sorted by seed (best first), take the top bracket_sz players
     and arrange them into first-round bracket games of 4 players each.
 
+    If bracket_sz is 4 or fewer, all players go into a single finale game.
+
     Seeding: game 1 gets seeds 1, N, N-1, 2 (top and bottom seeds together),
     in a snake pattern.
 
     Returns: list of games, each game is a list of players.
     """
     top = players_by_seed[:bracket_sz]
+
+    if bracket_sz <= 4:
+        return [top]
+
     num_games = bracket_sz // 4
 
     # Classic bracket seeding: pair seed 1 with N, 2 with N-1, etc.
