@@ -23,7 +23,7 @@
 {% endif %}
 
 <div class="card" style="max-width: 480px; margin: 0 auto;">
-  <h2>Enter points per player</h2>
+  <h2>{% if is_edit %}Edit points per player{% else %}Enter points per player{% endif %}</h2>
 
   {% if is_tiebreaker %}
     <div style="background: rgba(252,129,129,0.1); border: 1px solid #fc8181; border-radius: var(--radius); padding: 0.75rem 1rem; margin-bottom: 1rem;">
@@ -63,12 +63,14 @@
     {% endfor %}
 
     <div class="mt-4" style="display: flex; gap: 0.75rem;">
-      {% if is_tiebreaker %}
-        <button type="submit" class="btn btn-primary" style="background: #e53e3e;">⚡ Confirm tiebreaker results</button>
+      {% if is_edit %}
+        <button type="submit" class="btn btn-primary">✏️ Update results</button>
+      {% elif is_tiebreaker %}
+        <button type="submit" class="btn btn-primary" style="background: #e53e3e;"{% if has_tbd %} disabled title="Wait until all participants are known"{% endif %}>⚡ Confirm tiebreaker results</button>
       {% elif is_final %}
-        <button type="submit" class="btn btn-primary">🏆 Confirm final results</button>
+        <button type="submit" class="btn btn-primary"{% if has_tbd %} disabled title="Wait until all participants are known"{% endif %}>🏆 Confirm final results</button>
       {% else %}
-        <button type="submit" class="btn btn-primary">Save & advance top 2</button>
+        <button type="submit" class="btn btn-primary"{% if has_tbd %} disabled title="Wait until all participants are known"{% endif %}>Save & advance top 2</button>
       {% endif %}
       <a href="{% url 'tournament:bracket_view' admin_token=tournament.admin_token %}" class="btn btn-secondary">Cancel</a>
     </div>

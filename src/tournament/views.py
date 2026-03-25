@@ -1,6 +1,8 @@
 """Views for the Mario Kart Tournament app."""
+import io
 import math
 import random
+import re
 
 from django.db import transaction
 from django.http import Http404, HttpResponseForbidden
@@ -236,6 +238,28 @@ def _get_standings(tournament):
     return players
 
 
+def _generate_viewer_qr(request, tournament):
+    """
+    Generate an inline SVG QR code pointing to the viewer URL.
+    Returns an SVG string with no fixed dimensions (scales via CSS).
+    """
+    try:
+        import qrcode
+        import qrcode.image.svg
+    except ImportError:
+        return None
+    url = request.build_absolute_uri(tournament.get_viewer_url())
+    factory = qrcode.image.svg.SvgPathImage
+    img = qrcode.make(url, image_factory=factory, box_size=5, border=4)
+    buf = io.BytesIO()
+    img.save(buf)
+    svg_str = buf.getvalue().decode("utf-8")
+    # Remove fixed mm dimensions so CSS can control the size (viewBox is already present)
+    svg_str = re.sub(r'\s+width="[^"]*mm"', "", svg_str, count=1)
+    svg_str = re.sub(r'\s+height="[^"]*mm"', "", svg_str, count=1)
+    return svg_str
+
+
 def admin_dashboard(request, admin_token):
     """Organizer group stage view."""
     tournament = _get_tournament_by_admin(admin_token)
@@ -259,6 +283,7 @@ def admin_dashboard(request, admin_token):
             "switch_headers": list(range(1, tournament.switch_count + 1)),
             "is_admin": True,
             "all_group_complete": all_complete,
+            "viewer_qr_svg": _generate_viewer_qr(request, tournament),
         },
     )
 
@@ -266,11 +291,15 @@ def admin_dashboard(request, admin_token):
 def viewer(request, viewer_token):
     """Read-only viewer mode."""
     tournament = _get_tournament_by_viewer(viewer_token)
+    qr_svg = _generate_viewer_qr(request, tournament)
+    # Used by HTMX polling — the viewer's own URL
+    poll_url = request.path
 
     if tournament.stage in (STAGE_BRACKET, STAGE_COMPLETE):
         bracket_data = _build_bracket(tournament)
         standings = _get_standings(tournament)
         podium = _build_podium(tournament)
+        still_live = tournament.stage != STAGE_COMPLETE
         return render(
             request,
             "tournament/bracket.html",
@@ -280,7 +309,9 @@ def viewer(request, viewer_token):
                 "standings": standings,
                 "is_admin": False,
                 "podium": podium,
-                "auto_refresh": tournament.stage != STAGE_COMPLETE,
+                "auto_refresh": still_live,
+                "viewer_qr_svg": qr_svg,
+                "viewer_poll_url": poll_url if still_live else None,
             },
         )
 
@@ -296,6 +327,8 @@ def viewer(request, viewer_token):
             "switch_headers": list(range(1, tournament.switch_count + 1)),
             "is_admin": False,
             "auto_refresh": True,
+            "viewer_qr_svg": qr_svg,
+            "viewer_poll_url": poll_url,
         },
     )
 
@@ -337,13 +370,16 @@ def vote_cup(request, admin_token, game_id):
 
             # Once all players have voted (or organizer explicitly submits), select cup
             vote_counts = game.get_vote_counts()
-            selected = select_cup(vote_counts)
+            selected = select_cup(vote_counts, excluded_cups=tournament.blacklisted_cups)
             game.cup = selected
             game.status = GAME_STATUS_VOTING  # voting done, awaiting results
             game.save()
 
         return redirect("tournament:admin_dashboard", admin_token=admin_token)
 
+    # Only show cups that aren't blacklisted on the voting form
+    blacklisted = set(tournament.blacklisted_cups or [])
+    available_cups = [c for c in CUPS if c not in blacklisted] or CUPS
     return render(
         request,
         "tournament/vote.html",
@@ -352,7 +388,7 @@ def vote_cup(request, admin_token, game_id):
             "game": game,
             "participants": participants,
             "existing_votes": existing_votes,
-            "cups": CUPS,
+            "cups": available_cups,
         },
     )
 
@@ -482,13 +518,33 @@ def generate_bracket(request, admin_token):
     return redirect("tournament:bracket_view", admin_token=admin_token)
 
 
+def _can_edit_bracket_game(game):
+    """
+    A completed bracket game can be edited only if the next game (if any)
+    has not had any points entered yet, and the next game is not a tiebreaker
+    (editing a finale that produced a tiebreaker is not supported).
+    """
+    if game.status != GAME_STATUS_COMPLETE:
+        return False
+    if game.next_game is None:
+        return True  # finale or tiebreaker — no downstream cascade
+    if game.next_game.is_tiebreaker:
+        return False  # next game is a tiebreaker; cascade is complex
+    return not any(
+        p.points_earned is not None for p in game.next_game.participants.all()
+    )
+
+
 def _build_bracket(tournament):
     """
     Build bracket display data.
     Returns list of rounds, each round is a list of game dicts.
     """
     games = list(
-        tournament.bracket_games.prefetch_related("participants__player").all()
+        tournament.bracket_games.prefetch_related(
+            "participants__player",
+            "next_game__participants",
+        ).all()
     )
     if not games:
         return []
@@ -520,10 +576,10 @@ def _build_bracket(tournament):
                     "game": game,
                     "participants": participants,
                     "tie_note": tie_note,
+                    "can_edit": _can_edit_bracket_game(game),
                 }
             )
         is_tiebreaker_round = any(g["game"].is_tiebreaker for g in game_data)
-        # Group games into pairs for visual bracket connectors (every 2 games share a connector)
         pairs = [game_data[i:i + 2] for i in range(0, len(game_data), 2)]
         rounds.append({
             "round_number": r,
@@ -531,6 +587,17 @@ def _build_bracket(tournament):
             "pairs": pairs,
             "is_tiebreaker_round": is_tiebreaker_round,
         })
+
+    # Assign round labels: last = "Finale", second-to-last = "Semi-finale", etc.
+    total = len(rounds)
+    for i, rnd in enumerate(rounds):
+        if rnd["is_tiebreaker_round"]:
+            rnd["round_label"] = "Tiebreaker"
+        else:
+            distance = total - 1 - i  # 0 = last round, 1 = second-to-last, …
+            prefix = "Semi-" * distance
+            rnd["round_label"] = prefix + "finale"
+
     return rounds
 
 
@@ -640,6 +707,7 @@ def bracket_view(request, admin_token):
             "standings": standings,
             "is_admin": True,
             "podium": podium,
+            "viewer_qr_svg": _generate_viewer_qr(request, tournament),
         },
     )
 
@@ -748,6 +816,94 @@ def bracket_results(request, admin_token, game_id):
             "is_final": is_final,
             "is_tiebreaker": is_tiebreaker,
             "has_tbd": has_tbd,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Bracket game result editing
+# ---------------------------------------------------------------------------
+
+
+def bracket_edit(request, admin_token, game_id):
+    """
+    Edit results for a completed bracket game.
+    Only allowed when the next game (if any) has no points entered yet
+    and is not a tiebreaker game.
+    """
+    tournament = _get_tournament_by_admin(admin_token)
+    if auth_redirect := _require_admin_auth(request, tournament):
+        return auth_redirect
+    game = get_object_or_404(BracketGame, id=game_id, tournament=tournament)
+
+    if not _can_edit_bracket_game(game):
+        return redirect("tournament:bracket_view", admin_token=admin_token)
+
+    is_final = game.next_game is None and not game.is_tiebreaker
+    is_tiebreaker = game.is_tiebreaker
+    participants = list(game.participants.select_related("player").all())
+    real_participants = [p for p in participants if p.player is not None]
+
+    if request.method == "POST":
+        form = BracketResultsForm(real_participants, request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                # Track who was advancing before the edit
+                old_advancer_player_ids = {
+                    p.player.id for p in real_participants if p.advanced and p.player
+                }
+
+                # Update scores and reset advancement flags
+                for p in real_participants:
+                    p.points_earned = form.cleaned_data[f"points_{p.id}"]
+                    p.advanced = False
+                    p.save()
+
+                if game.next_game and not is_tiebreaker:
+                    # Recalculate top 2 advancers with tie-breaking via group stage pts
+                    sorted_p = sorted(
+                        real_participants,
+                        key=lambda p: (
+                            -(p.points_earned or 0),
+                            -(p.player.group_stage_points() if p.player else 0),
+                        ),
+                    )
+                    new_advancers = sorted_p[:2]
+                    for p in new_advancers:
+                        p.advanced = True
+                        p.save()
+
+                    # Update next game: find the slots that came from this game
+                    # (identified by old advancer player IDs) and replace with new advancers
+                    next_participants = list(
+                        game.next_game.participants.select_related("player").all()
+                    )
+                    old_slots = [
+                        np for np in next_participants
+                        if np.player and np.player.id in old_advancer_player_ids
+                    ]
+                    new_advancer_players = [p.player for p in new_advancers if p.player]
+                    for i, slot in enumerate(old_slots):
+                        slot.player = new_advancer_players[i] if i < len(new_advancer_players) else None
+                        slot.save()
+
+            return redirect("tournament:bracket_view", admin_token=admin_token)
+    else:
+        initial = {f"points_{p.id}": p.points_earned for p in real_participants}
+        form = BracketResultsForm(real_participants, initial=initial)
+
+    return render(
+        request,
+        "tournament/bracket_results.html",
+        {
+            "tournament": tournament,
+            "game": game,
+            "participants": real_participants,
+            "form": form,
+            "is_final": is_final,
+            "is_tiebreaker": is_tiebreaker,
+            "has_tbd": False,
+            "is_edit": True,
         },
     )
 
@@ -876,5 +1032,100 @@ def tournament_stats_viewer(request, viewer_token):
             "stats": stats,
             "standings": standings,
             "is_admin": False,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Rematch
+# ---------------------------------------------------------------------------
+
+
+def rematch_tournament(request, admin_token):
+    """
+    Create a new tournament with the same players, switch count, games-per-player,
+    and password as an existing completed tournament.  Only callable via POST
+    when the tournament is complete.
+    """
+    tournament = _get_tournament_by_admin(admin_token)
+    if auth_redirect := _require_admin_auth(request, tournament):
+        return auth_redirect
+    if request.method != "POST":
+        return redirect("tournament:bracket_view", admin_token=admin_token)
+    if tournament.stage != STAGE_COMPLETE:
+        return redirect("tournament:bracket_view", admin_token=admin_token)
+
+    # Build new name: strip any trailing " (Rematch)" suffix, append fresh one
+    base_name = (tournament.name or "").strip()
+    base_name = re.sub(r"\s*\(Rematch\)\s*$", "", base_name, flags=re.IGNORECASE).strip()
+    new_name = f"{base_name} (Rematch)".strip() if base_name else "(Rematch)"
+
+    player_names = list(tournament.players.order_by("id").values_list("name", flat=True))
+
+    with transaction.atomic():
+        new_t = Tournament.objects.create(
+            name=new_name,
+            switch_count=tournament.switch_count,
+            games_per_player=tournament.games_per_player,
+            stage=STAGE_GROUP,
+            password_hash=tournament.password_hash,  # reuse the same password
+        )
+        Player.objects.bulk_create(
+            [Player(tournament=new_t, name=name) for name in player_names]
+        )
+        players = list(new_t.players.all())
+
+        game_assignments = schedule_group_stage(
+            len(players), new_t.games_per_player, new_t.switch_count
+        )
+        scheduled = assign_rounds_and_switches(game_assignments, new_t.switch_count)
+
+        for slot in scheduled:
+            game = GroupGame.objects.create(
+                tournament=new_t,
+                round_number=slot["round_number"],
+                switch_number=slot["switch_number"],
+            )
+            for player_idx in slot["players"]:
+                GroupGameParticipant.objects.create(
+                    game=game,
+                    player=players[player_idx],
+                )
+
+    # Auto-authenticate the admin for the new tournament
+    request.session[f"admin_auth_{new_t.admin_token}"] = True
+    return redirect("tournament:created", admin_token=new_t.admin_token)
+
+
+# ---------------------------------------------------------------------------
+# Cup blacklist management
+# ---------------------------------------------------------------------------
+
+
+def manage_blacklist(request, admin_token):
+    """
+    Admin view to set which cups are excluded from this tournament's cup pool.
+    GET: show current blacklist as a form.
+    POST: save the updated blacklist.
+    """
+    tournament = _get_tournament_by_admin(admin_token)
+    if auth_redirect := _require_admin_auth(request, tournament):
+        return auth_redirect
+
+    if request.method == "POST":
+        # Collect checked cups (those being blacklisted)
+        new_blacklist = [cup for cup in CUPS if request.POST.get(f"bl_{cup}") == "on"]
+        tournament.blacklisted_cups = new_blacklist
+        tournament.save(update_fields=["blacklisted_cups"])
+        return redirect("tournament:admin_dashboard", admin_token=admin_token)
+
+    blacklisted_set = set(tournament.blacklisted_cups or [])
+    return render(
+        request,
+        "tournament/blacklist.html",
+        {
+            "tournament": tournament,
+            "cups": CUPS,
+            "blacklisted_set": blacklisted_set,
         },
     )

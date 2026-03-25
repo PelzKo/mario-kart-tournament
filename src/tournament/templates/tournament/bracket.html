@@ -3,6 +3,7 @@
 {% block title %}Bracket — Mario Kart{% endblock %}
 
 {% block content %}
+<div id="live-content"{% if viewer_poll_url %} hx-get="{{ viewer_poll_url }}" hx-trigger="every 30s" hx-swap="outerHTML" hx-select="#live-content"{% endif %}>
 <header>
   <h1>🏁 {% if tournament.name %}{{ tournament.name }}{% else %}Mario Kart Tournament{% endif %}</h1>
   {% if is_admin %}
@@ -88,6 +89,17 @@
 </div>
 {% endif %}
 
+{% if is_admin and tournament.stage == 'complete' %}
+<div style="margin-bottom:1.5rem;">
+  <form method="post" action="{% url 'tournament:rematch' admin_token=tournament.admin_token %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-secondary">
+      🔄 Rematch — same players &amp; settings
+    </button>
+  </form>
+</div>
+{% endif %}
+
 <div class="layout-sidebar">
 
   <div>
@@ -98,19 +110,13 @@
     <div class="bracket">
       {% for round in bracket %}
         <div class="bracket-round">
-          <div class="bracket-round-label">
-            {% if round.is_tiebreaker_round %}
-              Tiebreaker
-            {% elif forloop.last %}Final{% elif forloop.revcounter == 2 %}Semi-final{% else %}Round {{ round.round_number }}{% endif %}
-          </div>
+          <div class="bracket-round-label">{{ round.round_label }}</div>
 
           {% comment %}Render games grouped in pairs with connector lines{% endcomment %}
           {% for pair in round.pairs %}
-            <div class="bracket-pair {% if pair|length > 1 and not round.is_tiebreaker_round %}has-connector{% endif %}">
+            <div class="bracket-pair">
               {% for game_data in pair %}
-                <div class="bracket-game {{ game_data.game.status }}
-                  {% if game_data.game.is_tiebreaker %} tiebreaker-game{% endif %}
-                  {% if not forloop.parentloop.first or not forloop.parentloop.parentloop.first %}has-inbound{% endif %}">
+                <div class="bracket-game {{ game_data.game.status }}{% if game_data.game.is_tiebreaker %} tiebreaker-game{% endif %}">
                   {% if game_data.game.is_tiebreaker %}
                     <div style="font-size:0.7rem;font-weight:700;color:#fc8181;margin-bottom:0.3rem;">
                       ⚡ TIEBREAKER
@@ -136,11 +142,18 @@
                     </div>
                   {% endif %}
 
-                  {% if is_admin and game_data.game.status != 'complete' %}
-                    <div class="game-actions" style="margin-top:0.5rem;">
-                      <a href="{% url 'tournament:bracket_results' admin_token=tournament.admin_token game_id=game_data.game.id %}"
-                         class="btn btn-primary btn-sm">Enter results</a>
-                    </div>
+                  {% if is_admin %}
+                    {% if game_data.game.status != 'complete' %}
+                      <div class="game-actions" style="margin-top:0.5rem;">
+                        <a href="{% url 'tournament:bracket_results' admin_token=tournament.admin_token game_id=game_data.game.id %}"
+                           class="btn btn-primary btn-sm">Enter results</a>
+                      </div>
+                    {% elif game_data.can_edit %}
+                      <div class="game-actions" style="margin-top:0.5rem;">
+                        <a href="{% url 'tournament:bracket_edit' admin_token=tournament.admin_token game_id=game_data.game.id %}"
+                           class="btn btn-secondary btn-sm">Edit results</a>
+                      </div>
+                    {% endif %}
                   {% endif %}
                 </div>
               {% endfor %}
@@ -173,7 +186,18 @@
         </tbody>
       </table>
     </div>
+
+    {% if viewer_qr_svg %}
+    <div class="card" style="text-align:center;">
+      <h2>Viewer Link</h2>
+      <p class="text-muted text-sm" style="margin-bottom:0.75rem;">Scan to follow along (read-only)</p>
+      <div class="qr-svg" style="background:#fff;padding:8px;border-radius:var(--radius);display:inline-block;">
+        {{ viewer_qr_svg|safe }}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
 </div>
+</div>{# end #live-content #}
 {% endblock %}

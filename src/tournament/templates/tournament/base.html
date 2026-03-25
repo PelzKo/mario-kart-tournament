@@ -144,6 +144,7 @@
       transition: opacity 0.15s;
     }
     .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-primary { background: var(--mk-red); color: #fff; }
     .btn-secondary { background: var(--surface2); color: var(--text); }
     .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.85rem; }
@@ -282,57 +283,21 @@
     .bracket-player.tbd { color: var(--text-muted); font-style: italic; }
 
     /* ------------------------------------------------------------------ */
-    /* Bracket visual connectors                                           */
+    /* QR Code                                                             */
+    /* ------------------------------------------------------------------ */
+    .qr-svg svg { width: 160px; height: 160px; display: block; }
+
+    /* ------------------------------------------------------------------ */
+    /* Bracket pairs                                                        */
     /* ------------------------------------------------------------------ */
     .bracket-pair {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
-      position: relative;
-      margin-bottom: 1.5rem;
+      gap: 1rem;
+      margin-bottom: 1rem;
     }
 
     .bracket-pair:last-child { margin-bottom: 0; }
-
-    /* Vertical connector line on right side (only for 2-game pairs) */
-    .bracket-pair.has-connector::before {
-      content: '';
-      position: absolute;
-      right: -1.25rem;
-      top: 26%;
-      height: 48%;
-      width: 2px;
-      background: var(--border);
-      pointer-events: none;
-    }
-
-    /* Horizontal line stub from each game to the vertical bar */
-    .bracket-pair.has-connector .bracket-game {
-      position: relative;
-    }
-
-    .bracket-pair.has-connector .bracket-game::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      right: -1.25rem;
-      width: 1.25rem;
-      height: 2px;
-      background: var(--border);
-      pointer-events: none;
-    }
-
-    /* Inbound line on the left side for non-first-round games */
-    .bracket-game.has-inbound::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: -1.25rem;
-      width: 1.25rem;
-      height: 2px;
-      background: var(--border);
-      pointer-events: none;
-    }
 
     /* ------------------------------------------------------------------ */
     /* Utility                                                              */
@@ -425,7 +390,7 @@
     }
   </style>
   {% if auto_refresh %}
-  <meta http-equiv="refresh" content="30">
+  <script src="https://unpkg.com/htmx.org@1.9.12" crossorigin="anonymous"></script>
   {% endif %}
   {% block extra_head %}{% endblock %}
 </head>

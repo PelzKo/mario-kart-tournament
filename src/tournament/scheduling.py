@@ -145,24 +145,35 @@ def assign_rounds_and_switches(
     return result
 
 
-def select_cup(votes: dict) -> str:
+def select_cup(votes: dict, excluded_cups=None) -> str:
     """
     Weighted-random cup selection.
 
     votes: {cup_name: vote_count}
+    excluded_cups: iterable of cup names to exclude (blacklist)
     Each cup gets (vote_count + 1) tickets.
     Draw one ticket at random.
 
     If votes is empty (no participants voted), falls back to uniform random
-    over all cups.
+    over available cups.  If all cups are excluded, falls back to all cups.
     """
     from .constants import CUPS
 
+    excluded = set(excluded_cups or [])
+    available = [c for c in CUPS if c not in excluded] or list(CUPS)
+
     if not votes:
-        return random.choice(CUPS)
+        return random.choice(available)
+
+    # Filter votes to only include available (non-blacklisted) cups
+    filtered = {cup: count for cup, count in votes.items() if cup in available}
+
+    if not filtered:
+        # All voted cups are blacklisted — pick uniformly from available
+        return random.choice(available)
 
     tickets = []
-    for cup, count in votes.items():
+    for cup, count in filtered.items():
         tickets.extend([cup] * (count + 1))
 
     return random.choice(tickets)

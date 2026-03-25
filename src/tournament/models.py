@@ -31,6 +31,8 @@ class Tournament(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # Hashed password for protecting admin pages (blank = no password set)
     password_hash = models.CharField(max_length=128, blank=True)
+    # List of cup names excluded from cup voting/selection for this tournament
+    blacklisted_cups = models.JSONField(default=list)
 
     def __str__(self):
         return self.name or f"Tournament {self.id}"

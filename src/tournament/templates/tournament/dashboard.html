@@ -14,6 +14,7 @@
 {% endblock %}
 
 {% block content %}
+<div id="live-content"{% if viewer_poll_url %} hx-get="{{ viewer_poll_url }}" hx-trigger="every 30s" hx-swap="outerHTML" hx-select="#live-content"{% endif %}>
 <header>
   <h1>🏁 {% if tournament.name %}{{ tournament.name }}{% else %}Mario Kart Tournament{% endif %}</h1>
   {% if is_admin %}
@@ -146,6 +147,32 @@
           </tbody>
         </table>
       </div>
+
+      {% if is_admin %}
+      <div class="card">
+        <h2>Cup Blacklist</h2>
+        {% if tournament.blacklisted_cups %}
+          <p class="text-muted text-sm" style="margin-bottom:0.5rem;">
+            {{ tournament.blacklisted_cups|length }} cup{{ tournament.blacklisted_cups|length|pluralize }} excluded
+          </p>
+        {% else %}
+          <p class="text-muted text-sm" style="margin-bottom:0.5rem;">All cups available</p>
+        {% endif %}
+        <a href="{% url 'tournament:blacklist' admin_token=tournament.admin_token %}" class="btn btn-secondary btn-sm">
+          Manage blacklist
+        </a>
+      </div>
+      {% endif %}
+
+      {% if viewer_qr_svg %}
+      <div class="card" style="text-align:center;">
+        <h2>Viewer Link</h2>
+        <p class="text-muted text-sm" style="margin-bottom:0.75rem;">Scan to follow along (read-only)</p>
+        <div class="qr-svg" style="background:#fff;padding:8px;border-radius:var(--radius);display:inline-block;">
+          {{ viewer_qr_svg|safe }}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -155,4 +182,5 @@
     // Simple tab switcher (currently only one tab on this page)
   }
 </script>
+</div>{# end #live-content #}
 {% endblock %}

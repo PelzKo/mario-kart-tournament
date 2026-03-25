@@ -8,6 +8,13 @@
 - [x] **Group stage grid UI** — display grid (rows = rounds, columns = switches) with player names, status, and cup per cell
 - [x] **Cups and races** - Added `CUP_TRACKS` dict (24 cups × 4 tracks = 96 total) and `ALL_TRACKS` flat list to constants.py
 - [x] **Docker** - Added Dockerfile (gunicorn + whitenoise), docker-compose.yml (volume for SQLite), .dockerignore; settings updated for DATA_DIR
+- [x] **Remove lines in bracket** - The lines in the bracket stage that should look like a tree are not looking good, so remove them again so it is just a list of the games without the dashes representing the branches to the next game
+- [x] **QR-Code** - Create a QR code linking to the viewer page and display it in a corner both on the admin page and the viewer page
+- [x] **Blacklist** - Allow a user to blacklist cups or tracks
+- [x] **Rematch** - After a tournament have a button so you can do a rematch with the same people and parameters
+- [x] **HTMX** - Use htmx for smoother and better updating the viewer live page
+- [x] **Edit bracket games** - Make it possible for an admin to edit a bracket game result, maybe changing who advances. Only make it possible if the next game has not added points yet
+
 
 ## Medium Priority
 - [x] **Cup voting system** — per-game vote form; weighted-random cup selection (votes + 1 per cup); save selected cup to GroupGame
@@ -20,6 +27,9 @@
 - [x] **Finale** - If only one game remains, change text in point input form (no more people advance), and afterward show some kind of podium with the top three
 - [x] **Improvements** - IMPROVEMENT_IDEAS.md written with 12 concrete suggestions (password, stats, bracket lines, QR code, chat, print view, player profiles, cup blacklist, HTMX, rematch, undo, i18n)
 - [x] **Tie breaker finale** - After finale, if top scorers are tied, a tiebreaker BracketGame is auto-created (random cup+race from ALL_TRACKS, no voting). Podium shows tied players alphabetically per position.
+- [x] **Only warning for duplicate name** - When creating a tournament, check whether there are duplicate names before allowing the user to submit, because otherwise all the data the user inputted is gone and they need to reenter everything if a name is there twice
+- [x] **Bracket naming** - fix the bracket naming so the last one is finale, the one before that semi-finale, the one before that semi-semi-finale and so on (so adding a "semi-" for every level
+
 
 ## Low Priority
 - [x] **Viewer mode** — read-only tournament view via shareable URL; no forms or action buttons rendered
@@ -32,7 +42,7 @@
 - [x] **Statistics** - Third tab (after completion): cup usage frequency, player pairings, best single score, avg pts/game. Accessible via admin + viewer token.
 - [x] **Visual Brackets** - CSS bracket-pair connectors with horizontal stubs + vertical bar connecting game pairs to next round
 - [x] **Add points stop** - Warning banner shown in bracket_results when any participant is still TBD; form still submittable but clearly flagged
-- [ ] **no submit without points** - When warning banner is shown in bracket results that any participant is still TBD, make form not submittable
+- [x] **no submit without points** - When warning banner is shown in bracket results that any participant is still TBD, make form not submittable
 
 ## Completed
 - [x] Project initialization

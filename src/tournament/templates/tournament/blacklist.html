@@ -1,0 +1,81 @@
+{% extends "tournament/base.html" %}
+
+{% block title %}Cup Blacklist — Mario Kart{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .cup-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.1s;
+  }
+  .cup-checkbox-label:hover { background: var(--surface); }
+  .cup-checkbox-label.is-blacklisted {
+    border-color: var(--mk-red);
+    background: rgba(229,62,62,0.08);
+    color: #fc8181;
+  }
+  .cup-checkbox-label input[type="checkbox"] { cursor: pointer; accent-color: var(--mk-red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+  <h1>🚫 Cup Blacklist</h1>
+  <span class="badge">{{ tournament.name|default:"Tournament" }}</span>
+</header>
+
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+  <h2>Exclude cups from voting &amp; selection</h2>
+  <p class="text-muted text-sm" style="margin-bottom: 1.25rem;">
+    Checked cups will be excluded from all cup voting forms and from weighted-random
+    cup selection for this tournament. If all cups are excluded, the full list is used
+    as a fallback.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="cup-grid">
+      {% for cup in cups %}
+        {% if cup in blacklisted_set %}
+          <label class="cup-checkbox-label is-blacklisted" id="label_{{ forloop.counter }}">
+            <input type="checkbox" name="bl_{{ cup }}" checked
+                   onchange="this.closest('label').classList.toggle('is-blacklisted', this.checked)">
+            {{ cup }}
+          </label>
+        {% else %}
+          <label class="cup-checkbox-label" id="label_{{ forloop.counter }}">
+            <input type="checkbox" name="bl_{{ cup }}"
+                   onchange="this.closest('label').classList.toggle('is-blacklisted', this.checked)">
+            {{ cup }}
+          </label>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if blacklisted_set %}
+      <p class="text-muted text-sm" style="margin-bottom: 1rem;">
+        Currently blacklisted: <strong style="color: #fc8181;">{{ blacklisted_set|length }} cup{{ blacklisted_set|length|pluralize }}</strong>
+      </p>
+    {% endif %}
+
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <button type="submit" class="btn btn-primary">Save blacklist</button>
+      <a href="{% url 'tournament:admin_dashboard' admin_token=tournament.admin_token %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
